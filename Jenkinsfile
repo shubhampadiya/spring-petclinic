@@ -1,42 +1,35 @@
- node {
-           def mvnHome
-      stage('Preparation') { // for display purposes
-              // Get PetClinic code from a GitHub repository
-              git 'https://github.com/mitesh51/spring-
-         petclinic.git'
-             // Get the Maven tool.
-             // ** NOTE: This 'apache-maven-3.3.1' Maven tool must be 
-             configured in the global configuration.
-             mvnHome = tool 'apache-maven-3.3.1'
-             }
-            stage('SonarQube analysis') {
-             // requires SonarQube Scanner 3.0+
-            def scannerHome = tool 'SonarQube Scanner 3.0.3';
-         // Sonarqube6.3 must be configured in the Jenkins
-         Configuration -> Add SonarWube server 
-                 withSonarQubeEnv('Sonarqube6.3') {
-         //provide all required properties for Sonar execution
-                     bat "${scannerHome}/bin/sonar-scanner -
-         Dsonar.host.url=http://localhost:9000/ -
-         Dsonar.login=1335c62cbfceab5
-         954a5101ab7477cc974f58d56 -
-         Dsonar.projectVersion=1.0
-         -Dsonar.projectKey=petclinicKey -
-         Dsonar.sources=src"
-                 }
-            } 
-	stage('Build') {
-                 // Run the maven build based on the Operating system
-                 if (isUnix()) {
-        sh "'${mvnHome}/bin/mvn' -
-         Dmaven.test.failure.ignore clean package"
-           // Publish JUnit Report
-               junit '**/target/surefire-reports/TEST-*.xml'
-               } else {
-                  bat(/"${mvnHome}\bin\mvn" clean package/)
-          // Publish JUnit Report
-              junit '**/target/surefire-reports/TEST-*.xml'
+node {
+	def mavenHome
+        
+        stage('Code Checkout') { 
+		// Get code from a repository and Git has to be installed in the system; git must be configured in the Global Tool Configuration
+		git 'https://github.com/mitesh51/spring-petclinic.git'
+           
+		// Get the Maven tool configured in Global Tool Configuration 
+		// 'apache-maven-3.5.3' Maven tool must be configured in the global configuration.
+		mavenHome = tool 'apache-maven-3.5.3'
+        }
+        stage('Code Analysis') {
+                // Configure SonarQube Scanner in Manage Jenkins -> Global Tool Configuration
+                def scannerHome = tool 'SonarQube Scanner';
 
-              }
-           }
-         }
+                // Sonarqube 7 must be configured in the Jenkins Manage Jenkins -> Configure System -> Add SonarQube server 
+                withSonarQubeEnv('Sonar7.1') {
+                        bat "${scannerHome}/bin/sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.login=cb4e2ac86c60200796a7cf866c2a60955a505db2 -Dsonar.projectVersion=1.0 -Dsonar.projectKey=PetClinic_Key -Dsonar.sources=src -Dsonar.java.binaries=."
+                }
+        } 
+	stage('Build') {
+                // Execute shell script if OS flavor is Linux
+                if (isUnix()) {
+                        sh "'${mavenHome}/bin/mvn' -Dmaven.test.failure.ignore clean package"
+                        // Publish JUnit Report
+                        junit '**/target/surefire-reports/TEST-*.xml'
+                } 
+                else {
+                        // Execute Batch script if OS flavor is Windows		
+                        bat(/"${mavenHome}\bin\mvn" clean package/)
+                        // Publish JUnit Report
+                        junit '**/target/surefire-reports/TEST-*.xml'
+                }
+	}
+}
